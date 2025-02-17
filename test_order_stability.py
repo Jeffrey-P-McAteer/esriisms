@@ -265,7 +265,7 @@ if __name__ == '__main__':
   offset_and_len, pages_of_oids = query_all_feature_pages(g)
   print(f'=== {len(pages_of_oids)} pages of oids returned ===')
   for i in range(0, min(len(pages_of_oids), len(offset_and_len)) ):
-    print(f'  Requested beginning at offset {offset_and_len[i][0]: <2} {offset_and_len[i][1]: <2} items, recived {len(pages_of_oids[i]): <2}: {pages_of_oids[i]}')
+    print(f'  Requested begin at offset {offset_and_len[i][0]: <2}, return the next {offset_and_len[i][1]: <2} items, recived {len(pages_of_oids[i]): <2}: {pages_of_oids[i]}')
 
   pages_of_oids_unique_oids = set()
   flattened_returned_pages = list()
