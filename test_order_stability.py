@@ -323,7 +323,7 @@ if __name__ == '__main__':
     max_x = fc_extent.get('xmax', max_x)
     min_y = fc_extent.get('ymin', min_y)
     print(f'min_x={min_x} max_x={max_x} min_y={min_y} max_y={max_y}')
-    use_arcgis_pages = len(os.environ.get('USE_ARCGIS_PAGES')) > 0
+    use_arcgis_pages = len(os.environ.get('USE_ARCGIS_PAGES', '')) > 0
     print(f'USE_ARCGIS_PAGES = {use_arcgis_pages} (when True, arcgis.features.FeatureLayer::query is used download the data. When False, urllib.request.Request downloads the data.)')
 
     server_oid_field_name = read_fc_oid_field(server_url)
