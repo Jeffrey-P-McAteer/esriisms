@@ -410,13 +410,22 @@ if __name__ == '__main__':
     print(f'Q2 is {tf_to_yn(q2_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
     print()
 
-    print('Q3: Is the ordering different from the one big query to the combination of smaller queries?')
+    print('Q3: Are OIDs returned by the paginated query which were NOT expected OIDs?')
     q3_is_true = False
+    for p_oid in flattened_returned_pages:
+      if not p_oid in expected_oids:
+        print(f'  Observation: {p_oid} returned in the pages but NOT in the initial large query which produced the expected results!')
+        q3_is_true = False
+    print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
+    print()
+
+    print('Q4: Is the ordering different from the one big query to the combination of smaller queries?')
+    q4_is_true = False
     for i in range(0, min(len(expected_oids), len(flattened_returned_pages))):
       if expected_oids[i] != flattened_returned_pages[i]:
         print(f'  Expected OID {expected_oids[i]} at position {i} but flattened_returned_pages[{i}] = {flattened_returned_pages[i]}')
-        q3_is_true = True
-    print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
+        q4_is_true = True
+    print(f'Q4 is {tf_to_yn(q4_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
     print()
 
 

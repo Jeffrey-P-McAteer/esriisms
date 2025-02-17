@@ -243,4 +243,108 @@ Q3 is Yes for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
 ============ TEST END FOR gis.blm.gov ============
 ```
 
+```
+LOG_URLS_TO is unset, pass a file path to record all outgoing HTTP requests
+============ TEST BEGIN FOR services.arcgis.com ============
+Server under test = https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Major_Cities_/FeatureServer/0/query
+Server version = 11.2
+min_x=-159.31905095499997 max_x=-68.67922447599994 min_y=19.582718559000057 max_y=64.86927542300003
+USE_ARCGIS_PAGES = False (when True, arcgis.features.FeatureLayer::query is used download the data. When False, urllib.request.Request downloads the data.)
+Running test with random Geometry POLYGON ((-108.57760392258407 40.85007795372945, -113.62551471439889 45.84032735313478, -114.23944761775729 34.38147578020761, -108.57760392258407 40.85007795372945))
+Test geometry is 286,377,415,402 km^2 in area
+
+expected_oids(76) = [4132, 4130, 3808, 3807, 3806, 3805, 3804, 3803, 3802, 3801, 3746, 3745, 3744, 3743, 3742, 3741, 3740, 3739, 3738, 3737, 3736, 3735, 3734, 3733, 3732, 3731, 3730, 3729, 3728, 3727, 3726, 3725, 3724, 3723, 3722, 3721, 3720, 3719, 3718, 3717, 3716, 3715, 3714, 3713, 3712, 3711, 3710, 3709, 3708, 3707, 3706, 3705, 3704, 3703, 3702, 3701, 3700, 3699, 3698, 3697, 3696, 3695, 3694, 3693, 3692, 3691, 2409, 1306, 1249, 1241, 1236, 1234, 1232, 1231, 103, 98]
+num_sticky_indexes = 0 (if this is ==0, this means we could successfully query every item one-at-a-time)
+
+Querying pages using query_feature_page
+=== 17 pages of oids returned ===
+  Requested begin at offset 0 , return the next 9  items, recived 9 : [4132, 4130, 3808, 3807, 3806, 3805, 3804, 3803, 3802]
+  Requested begin at offset 9 , return the next 4  items, recived 4 : [3801, 3746, 3745, 3744]
+  Requested begin at offset 13, return the next 9  items, recived 9 : [3743, 3742, 3741, 3740, 3739, 3738, 3737, 3736, 3735]
+  Requested begin at offset 22, return the next 5  items, recived 5 : [3734, 3733, 3732, 3731, 3730]
+  Requested begin at offset 27, return the next 4  items, recived 4 : [3729, 3728, 3727, 3726]
+  Requested begin at offset 31, return the next 8  items, recived 8 : [3725, 3724, 3723, 3722, 3721, 3720, 3719, 3718]
+  Requested begin at offset 39, return the next 10 items, recived 10: [3717, 3716, 3715, 3714, 3713, 3712, 3711, 3710, 3709, 3708]
+  Requested begin at offset 49, return the next 9  items, recived 9 : [3707, 3706, 3705, 3704, 3703, 3702, 3701, 3700, 3699]
+  Requested begin at offset 58, return the next 8  items, recived 8 : [3698, 3697, 3696, 3695, 3694, 3693, 3692, 3691]
+  Requested begin at offset 66, return the next 8  items, recived 8 : [2409, 1306, 1249, 1241, 1236, 1234, 1232, 1231]
+  Requested begin at offset 74, return the next 6  items, recived 2 : [103, 98]
+  Requested begin at offset 76, return the next 5  items, recived 0 : []
+  Requested begin at offset 76, return the next 8  items, recived 0 : []
+  Requested begin at offset 76, return the next 7  items, recived 0 : []
+  Requested begin at offset 76, return the next 8  items, recived 0 : []
+  Requested begin at offset 76, return the next 6  items, recived 0 : []
+  Requested begin at offset 76, return the next 6  items, recived 0 : []
+pages_of_oids_unique_oids(76) = {3712, 3713, 3714, 3715, 3716, 3717, 3718, 3719, 3720, 3721, 3722, 3723, 3724, 3725, 3726, 3727, 3728, 3729, 3730, 3731, 3732, 3733, 3734, 3735, 3736, 3737, 3738, 3739, 3740, 3741, 3742, 3743, 3744, 3745, 4130, 3746, 4132, 1306, 1231, 1232, 1234, 1236, 3801, 3802, 3803, 3804, 3805, 3806, 3807, 3808, 1249, 1241, 98, 103, 2409, 3691, 3692, 3693, 3694, 3695, 3696, 3697, 3698, 3699, 3700, 3701, 3702, 3703, 3704, 3705, 3706, 3707, 3708, 3709, 3710, 3711}
+
+Test took 23.0 seconds (0.30 s/feature, 1.35 s/page of features)
+
+Q1: Are there duplicate OIDs?
+Q1 is No for services.arcgis.com running version 11.2 and USE_ARCGIS_PAGES = False
+
+Q2: Are there expected OIDs which were NOT returnd by the paginated query?
+Q2 is No for services.arcgis.com running version 11.2 and USE_ARCGIS_PAGES = False
+
+Q3: Are OIDs returned by the paginated query which were NOT expected OIDs?
+Q3 is No for services.arcgis.com running version 11.2 and USE_ARCGIS_PAGES = False
+
+Q4: Is the ordering different from the one big query to the combination of smaller queries?
+Q4 is No for services.arcgis.com running version 11.2 and USE_ARCGIS_PAGES = False
+
+============ TEST END FOR services.arcgis.com ============
+
+============ TEST BEGIN FOR gis.blm.gov ============
+Server under test = https://gis.blm.gov/arcgis/rest/services/recreation/BLM_Natl_Recreation_Sites_Facilities/MapServer/1/query
+Server version = 11.3
+min_x=-160.79687999999996 max_x=-77.19741099999999 min_y=26.948000000000036 max_y=68.13000000000005
+USE_ARCGIS_PAGES = False (when True, arcgis.features.FeatureLayer::query is used download the data. When False, urllib.request.Request downloads the data.)
+Running test with random Geometry POLYGON ((-118.87910563237583 64.474837781418, -103.86836660201747 59.22693600724598, -109.44205359048975 43.22895317478473, -118.87910563237583 64.474837781418))
+Test geometry is 795,174,600,007 km^2 in area
+
+expected_oids(15) = [1343335, 1343299, 1343281, 1343133, 1342875, 1342710, 1342682, 1342667, 1342657, 1342546, 1342542, 1342452, 1342348, 1342334, 1342275]
+num_sticky_indexes = 0 (if this is ==0, this means we could successfully query every item one-at-a-time)
+
+Querying pages using query_feature_page
+=== 6 pages of oids returned ===
+  Requested begin at offset 0 , return the next 6  items, recived 0 : []
+  Requested begin at offset 0 , return the next 6  items, recived 0 : []
+  Requested begin at offset 0 , return the next 7  items, recived 0 : []
+  Requested begin at offset 0 , return the next 7  items, recived 0 : []
+  Requested begin at offset 0 , return the next 6  items, recived 0 : []
+  Requested begin at offset 0 , return the next 8  items, recived 0 : []
+pages_of_oids_unique_oids(0) = set()
+
+Test took 16.5 seconds (1.10 s/feature, 2.75 s/page of features)
+
+Q1: Are there duplicate OIDs?
+Q1 is No for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
+
+Q2: Are there expected OIDs which were NOT returnd by the paginated query?
+  Observation: 1343335 was NOT returned in the pages!
+  Observation: 1343299 was NOT returned in the pages!
+  Observation: 1343281 was NOT returned in the pages!
+  Observation: 1343133 was NOT returned in the pages!
+  Observation: 1342875 was NOT returned in the pages!
+  Observation: 1342710 was NOT returned in the pages!
+  Observation: 1342682 was NOT returned in the pages!
+  Observation: 1342667 was NOT returned in the pages!
+  Observation: 1342657 was NOT returned in the pages!
+  Observation: 1342546 was NOT returned in the pages!
+  Observation: 1342542 was NOT returned in the pages!
+  Observation: 1342452 was NOT returned in the pages!
+  Observation: 1342348 was NOT returned in the pages!
+  Observation: 1342334 was NOT returned in the pages!
+  Observation: 1342275 was NOT returned in the pages!
+Q2 is No for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
+
+Q3: Are OIDs returned by the paginated query which were NOT expected OIDs?
+Q3 is No for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
+
+Q4: Is the ordering different from the one big query to the combination of smaller queries?
+Q4 is No for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
+
+============ TEST END FOR gis.blm.gov ============
+````
+
+
 
