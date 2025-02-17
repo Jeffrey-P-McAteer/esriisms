@@ -2,7 +2,8 @@
 # requires-python = ">=3.9"
 # dependencies = [
 #   "shapely>=2.0.7",
-#   "pyproj>=2.3.0"
+#   "pyproj>=2.3.0",
+#   "arcgis>=2.4.0"
 # ]
 # ///
 
@@ -15,6 +16,10 @@ import json
 import traceback
 import pyproj
 import shapely.geometry
+import time
+
+import arcgis.gis
+import arcgis.geometry
 
 server_urls = [ random.choice([
   # This one is an older server (10.91) which does not give stable paginated results
@@ -29,6 +34,8 @@ server_urls = [ random.choice([
 
 if len(sys.argv) > 1:
   server_urls = sys.argv[1:]
+
+server_url = random.choice(server_urls)
 
 possible_oid_names = [
   'objectid', 'OBJECTID', 'ObjectID', 'oid', 'OID', 'rowid'
@@ -124,6 +131,9 @@ def tf_to_yn(tf):
     return 'No'
 
 def read_oid(f):
+  if isinstance(f, arcgis.features.Feature):
+    f = f.as_dict
+
   if 'attributes' in f:
     for possible_oid_name in possible_oid_names:
       if possible_oid_name in f['attributes']:
@@ -149,7 +159,7 @@ def read_oid_field(f):
 
 
 last_feature_page_json = None
-def query_feature_page(a_polygon, resultOffset=0, resultRecordCount=4):
+def query_feature_page(server_url, a_polygon, resultOffset=0, resultRecordCount=4):
   global last_feature_page_json, server_oid_field_name
   if a_polygon is None:
     return []
@@ -186,17 +196,57 @@ def query_feature_page(a_polygon, resultOffset=0, resultRecordCount=4):
     return []
   return [ read_oid(f) for f in resp_json['features'] ]
 
-def query_all_feature_pages(a_polygon):
+def query_feature_page_arcgis(server_url, a_polygon, resultOffset=0, resultRecordCount=4):
+  global last_feature_page_json, server_oid_field_name
+  if a_polygon is None:
+    return []
+  if hasattr(a_polygon, 'exterior'):
+    coords = [pt for pt in a_polygon.exterior.coords]
+  else:
+    coords = a_polygon
+
+  json_query_g = {'spatialReference': {'wkid': 4326}, 'rings': [ coords ]}
+  arcgis_g = arcgis.geometry.Polygon(json_query_g)
+
+  fl_url = server_url
+  if fl_url.endswith('/query'):
+    fl_url = '/'.join(fl_url.split('/')[:-1])
+
+  arcgis_fl = arcgis.features.FeatureLayer(fl_url)
+
+  arcgis_result = arcgis_fl.query(
+    where='1=1',
+    geometry_filter=arcgis.geometry.filters.intersects(arcgis_g, sr=4326),
+    out_fields='*',
+    return_geometry=True,
+    order_by_fields=f'{server_oid_field_name} DESC',
+    result_offset=resultOffset,
+    result_record_count=resultRecordCount,
+    return_all_records=False # Must be set so result_record_count is respected
+  )
+  try:
+    page_oids = [ read_oid(f) for f in arcgis_result.features ]
+    #print(f'result_offset={resultOffset} result_record_count={resultRecordCount} - {page_oids}')
+    del arcgis_fl
+    return page_oids
+  except:
+    traceback.print_exc()
+    return []
+
+def query_all_feature_pages(server_url, a_polygon, query_feature_page_fn=None):
   global last_feature_page_json
   if a_polygon is None:
     return []
+  if query_feature_page_fn is None:
+    query_feature_page_fn = query_feature_page
   allowed_zero_replies = 6
   result_offset = 0
   offset_and_len = list() # Tuple of (resultOffset, resultRecordCount)
   pages_of_oids = list()
   while allowed_zero_replies > 0:
     result_record_count = random.choice([4,5,6,7,8,9,10])
-    feature_page = query_feature_page(
+    feature_page = query_feature_page_fn(
+      server_url,
       a_polygon,
       resultOffset=result_offset,
       resultRecordCount=result_record_count # We select a random page size - when joined this should not make a difference if we're reading features 2-at-a-time, 3-at-a-time, etc.
@@ -229,6 +279,7 @@ def query_all_feature_pages(a_polygon):
 if __name__ == '__main__':
   for server_url in server_urls:
     # Step 0: Report meta-data
+    begin_s = time.time()
     server_host = urllib.parse.urlparse(server_url).netloc
     print('='*12, f'TEST BEGIN FOR {server_host}', '='*12)
     print(f'Server under test = {server_url}')
@@ -240,6 +291,8 @@ if __name__ == '__main__':
     max_x = fc_extent.get('xmax', max_x)
     min_y = fc_extent.get('ymin', min_y)
     print(f'min_x={min_x} max_x={max_x} min_y={min_y} max_y={max_y}')
+    use_arcgis_pages = len(os.environ.get('USE_ARCGIS_PAGES')) > 0
+    print(f'USE_ARCGIS_PAGES = {use_arcgis_pages} (when True, arcgis.features.FeatureLayer::query is used download the data. When False, urllib.request.Request downloads the data.)')
 
     server_oid_field_name = read_fc_oid_field(server_url)
     if not server_oid_field_name in possible_oid_names:
@@ -248,7 +301,7 @@ if __name__ == '__main__':
     # Step 1: Generate a triangle which, when queried for UP to 500 features returns at least 9 and less than 300.
     g = None
     while True:
-      num_features = len(query_feature_page(g, resultOffset=0, resultRecordCount=500))
+      num_features = len(query_feature_page(server_url, g, resultOffset=0, resultRecordCount=500))
       if num_features > 9 and num_features < 300:
         break
       g = shapely.geometry.Polygon(gen_rand_points(3))
@@ -257,13 +310,17 @@ if __name__ == '__main__':
     print()
 
     # Step 2: Log the "expected" ordering of OIDS
-    expected_oids = query_feature_page(g, resultOffset=0, resultRecordCount=500)
+    expected_oids = query_feature_page(server_url, g, resultOffset=0, resultRecordCount=500)
     print(f'expected_oids({len(expected_oids)}) = {expected_oids}')
 
     # Step 3: Join pages together and do analysis on
     #   - do OIDS repeat?
     #   - Are OIDS omitted?
-    offset_and_len, pages_of_oids = query_all_feature_pages(g)
+    if use_arcgis_pages:
+      offset_and_len, pages_of_oids = query_all_feature_pages(server_url, g, query_feature_page_fn=query_feature_page_arcgis)
+    else:
+      offset_and_len, pages_of_oids = query_all_feature_pages(server_url, g, query_feature_page_fn=query_feature_page)
+
     print(f'=== {len(pages_of_oids)} pages of oids returned ===')
     for i in range(0, min(len(pages_of_oids), len(offset_and_len)) ):
       print(f'  Requested begin at offset {offset_and_len[i][0]: <2}, return the next {offset_and_len[i][1]: <2} items, recived {len(pages_of_oids[i]): <2}: {pages_of_oids[i]}')
@@ -278,6 +335,13 @@ if __name__ == '__main__':
     print(f'pages_of_oids_unique_oids({len(pages_of_oids_unique_oids)}) = {pages_of_oids_unique_oids}')
 
     print()
+    end_s = time.time()
+    duration_s = abs(end_s - begin_s)
+    duration_per_feature = duration_s / len(expected_oids)
+    duration_per_page = duration_s / len(pages_of_oids)
+    print(f'Test took {duration_s:.1f} seconds ({duration_per_feature:.2f} s/feature, {duration_per_page:.2f} s/page of features)')
+
+    print()
     print('Q1: Are there duplicate OIDs?')
     q1_is_true = False
     oid_counts = dict()
@@ -290,7 +354,7 @@ if __name__ == '__main__':
       if count > 1:
         print(f'  Observation: {oid} was returned {count} times!')
         q1_is_true = True
-    print(f'Q1 is {tf_to_yn(q1_is_true)} for {server_host} running version {server_version}')
+    print(f'Q1 is {tf_to_yn(q1_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
     print()
 
     print('Q2: Are there expected OIDs which were NOT returnd by the paginated query?')
@@ -299,7 +363,7 @@ if __name__ == '__main__':
       if not e_oid in pages_of_oids_unique_oids:
         print(f'  Observation: {e_oid} was NOT returned in the pages!')
         q2_is_true = False
-    print(f'Q2 is {tf_to_yn(q2_is_true)} for {server_host} running version {server_version}')
+    print(f'Q2 is {tf_to_yn(q2_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
     print()
 
     print('Q3: Is the ordering different from the one big query to the combination of smaller queries?')
@@ -308,7 +372,9 @@ if __name__ == '__main__':
       if expected_oids[i] != flattened_returned_pages[i]:
         print(f'  Expected OID {expected_oids[i]} at position {i} but flattened_returned_pages[{i}] = {flattened_returned_pages[i]}')
         q3_is_true = True
-    print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version}')
+    print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version} and USE_ARCGIS_PAGES = {use_arcgis_pages}')
     print()
+
+
     print('='*12, f'TEST END FOR {server_host}', '='*12)
     print()
