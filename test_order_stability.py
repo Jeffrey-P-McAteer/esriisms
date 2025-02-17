@@ -163,7 +163,7 @@ def query_feature_page(a_polygon, resultOffset=0, resultRecordCount=4):
       'geometryType': 'esriGeometryPolygon',
       'outFields': '*',
       'returnGeometry': True,
-      'orderByFields': server_oid_field_name,
+      'orderByFields': f'{server_oid_field_name} DESC',
       # 'returnDistinctValues': 'true', # Cannot use in a Geometry query -_-
       'resultOffset': resultOffset,
       'resultRecordCount': resultRecordCount,
