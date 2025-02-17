@@ -13,11 +13,10 @@ import urllib.parse
 import random
 import json
 import traceback
-
 import pyproj
 import shapely.geometry
 
-server_url = random.choice([
+server_urls = [ random.choice([
   # This one is an older server (10.91) which does not give stable paginated results
   'https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/0/query',
   # This is a very recent version (11.2) which gives stable paginated results
@@ -26,10 +25,10 @@ server_url = random.choice([
   'https://gis.blm.gov/arcgis/rest/services/recreation/BLM_Natl_Recreation_Sites_Facilities/MapServer/1/query',
   # New version (11.1), no unstable pages seen.
   'https://energy.virginia.gov/gis/rest/services/DGMR/VA_Water_Wells/MapServer/0',
-])
+]) ]
 
 if len(sys.argv) > 1:
-  server_url = sys.argv[1]
+  server_urls = sys.argv[1:]
 
 possible_oid_names = [
   'objectid', 'OBJECTID', 'ObjectID', 'oid', 'OID', 'rowid'
@@ -228,86 +227,88 @@ def query_all_feature_pages(a_polygon):
 
 
 if __name__ == '__main__':
-  # Step 0: Report meta-data
-  print(f'Server under test = {server_url}')
-  server_version = read_server_version(server_url)
-  print(f'Server version = {server_version}')
-  server_host = urllib.parse.urlparse(server_url).netloc
-  fc_extent = read_fc_extent(server_url)
-  min_x = fc_extent.get('xmin', min_x)
-  max_y = fc_extent.get('ymax', max_y)
-  max_x = fc_extent.get('xmax', max_x)
-  min_y = fc_extent.get('ymin', min_y)
-  print(f'min_x={min_x} max_x={max_x} min_y={min_y} max_y={max_y}')
+  for server_url in server_urls:
+    # Step 0: Report meta-data
+    server_host = urllib.parse.urlparse(server_url).netloc
+    print('='*12, f'TEST BEGIN FOR {server_host}', '='*12)
+    print(f'Server under test = {server_url}')
+    server_version = read_server_version(server_url)
+    print(f'Server version = {server_version}')
+    fc_extent = read_fc_extent(server_url)
+    min_x = fc_extent.get('xmin', min_x)
+    max_y = fc_extent.get('ymax', max_y)
+    max_x = fc_extent.get('xmax', max_x)
+    min_y = fc_extent.get('ymin', min_y)
+    print(f'min_x={min_x} max_x={max_x} min_y={min_y} max_y={max_y}')
 
-  server_oid_field_name = read_fc_oid_field(server_url)
-  if not server_oid_field_name in possible_oid_names:
-    possible_oid_names.insert(0, server_oid_field_name)
+    server_oid_field_name = read_fc_oid_field(server_url)
+    if not server_oid_field_name in possible_oid_names:
+      possible_oid_names.insert(0, server_oid_field_name)
 
-  # Step 1: Generate a triangle which, when queried for UP to 500 features returns at least 9 and less than 300.
-  g = None
-  while True:
-    num_features = len(query_feature_page(g, resultOffset=0, resultRecordCount=500))
-    if num_features > 9 and num_features < 300:
-      break
-    g = shapely.geometry.Polygon(gen_rand_points(3))
-  print(f'Running test with random Geometry {g}')
-  print(f'Test geometry is {int(area_of_wgs84_in_km2(g)):,} km^2 in area')
-  print()
+    # Step 1: Generate a triangle which, when queried for UP to 500 features returns at least 9 and less than 300.
+    g = None
+    while True:
+      num_features = len(query_feature_page(g, resultOffset=0, resultRecordCount=500))
+      if num_features > 9 and num_features < 300:
+        break
+      g = shapely.geometry.Polygon(gen_rand_points(3))
+    print(f'Running test with random Geometry {g}')
+    print(f'Test geometry is {int(area_of_wgs84_in_km2(g)):,} km^2 in area')
+    print()
 
-  # Step 2: Log the "expected" ordering of OIDS
-  expected_oids = query_feature_page(g, resultOffset=0, resultRecordCount=500)
-  print(f'expected_oids({len(expected_oids)}) = {expected_oids}')
+    # Step 2: Log the "expected" ordering of OIDS
+    expected_oids = query_feature_page(g, resultOffset=0, resultRecordCount=500)
+    print(f'expected_oids({len(expected_oids)}) = {expected_oids}')
 
-  # Step 3: Join pages together and do analysis on
-  #   - do OIDS repeat?
-  #   - Are OIDS omitted?
-  offset_and_len, pages_of_oids = query_all_feature_pages(g)
-  print(f'=== {len(pages_of_oids)} pages of oids returned ===')
-  for i in range(0, min(len(pages_of_oids), len(offset_and_len)) ):
-    print(f'  Requested begin at offset {offset_and_len[i][0]: <2}, return the next {offset_and_len[i][1]: <2} items, recived {len(pages_of_oids[i]): <2}: {pages_of_oids[i]}')
+    # Step 3: Join pages together and do analysis on
+    #   - do OIDS repeat?
+    #   - Are OIDS omitted?
+    offset_and_len, pages_of_oids = query_all_feature_pages(g)
+    print(f'=== {len(pages_of_oids)} pages of oids returned ===')
+    for i in range(0, min(len(pages_of_oids), len(offset_and_len)) ):
+      print(f'  Requested begin at offset {offset_and_len[i][0]: <2}, return the next {offset_and_len[i][1]: <2} items, recived {len(pages_of_oids[i]): <2}: {pages_of_oids[i]}')
 
-  pages_of_oids_unique_oids = set()
-  flattened_returned_pages = list()
-  for p in pages_of_oids:
-    for oid in p:
-      pages_of_oids_unique_oids.add(oid)
-      flattened_returned_pages.append(oid)
+    pages_of_oids_unique_oids = set()
+    flattened_returned_pages = list()
+    for p in pages_of_oids:
+      for oid in p:
+        pages_of_oids_unique_oids.add(oid)
+        flattened_returned_pages.append(oid)
 
-  print(f'pages_of_oids_unique_oids({len(pages_of_oids_unique_oids)}) = {pages_of_oids_unique_oids}')
+    print(f'pages_of_oids_unique_oids({len(pages_of_oids_unique_oids)}) = {pages_of_oids_unique_oids}')
 
-  print()
-  print('Q1: Are there duplicate OIDs?')
-  q1_is_true = False
-  oid_counts = dict()
-  for oid in flattened_returned_pages:
-    if not oid in oid_counts:
-      oid_counts[oid] = 0
-    oid_counts[oid] += 1
+    print()
+    print('Q1: Are there duplicate OIDs?')
+    q1_is_true = False
+    oid_counts = dict()
+    for oid in flattened_returned_pages:
+      if not oid in oid_counts:
+        oid_counts[oid] = 0
+      oid_counts[oid] += 1
 
-  for oid, count in oid_counts.items():
-    if count > 1:
-      print(f'  Observation: {oid} was returned {count} times!')
-      q1_is_true = True
-  print(f'Q1 is {tf_to_yn(q1_is_true)} for {server_host} running version {server_version}')
-  print()
+    for oid, count in oid_counts.items():
+      if count > 1:
+        print(f'  Observation: {oid} was returned {count} times!')
+        q1_is_true = True
+    print(f'Q1 is {tf_to_yn(q1_is_true)} for {server_host} running version {server_version}')
+    print()
 
-  print('Q2: Are there expected OIDs which were NOT returnd by the paginated query?')
-  q2_is_true = False
-  for e_oid in expected_oids:
-    if not e_oid in pages_of_oids_unique_oids:
-      print(f'  Observation: {e_oid} was NOT returned in the pages!')
-      q2_is_true = False
-  print(f'Q2 is {tf_to_yn(q2_is_true)} for {server_host} running version {server_version}')
-  print()
+    print('Q2: Are there expected OIDs which were NOT returnd by the paginated query?')
+    q2_is_true = False
+    for e_oid in expected_oids:
+      if not e_oid in pages_of_oids_unique_oids:
+        print(f'  Observation: {e_oid} was NOT returned in the pages!')
+        q2_is_true = False
+    print(f'Q2 is {tf_to_yn(q2_is_true)} for {server_host} running version {server_version}')
+    print()
 
-  print('Q3: Is the ordering different from the one big query to the combination of smaller queries?')
-  q3_is_true = False
-  for i in range(0, min(len(expected_oids), len(flattened_returned_pages))):
-    if expected_oids[i] != flattened_returned_pages[i]:
-      print(f'  Expected OID {expected_oids[i]} at position {i} but flattened_returned_pages[{i}] = {flattened_returned_pages[i]}')
-      q3_is_true = True
-  print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version}')
-  print()
-
-
+    print('Q3: Is the ordering different from the one big query to the combination of smaller queries?')
+    q3_is_true = False
+    for i in range(0, min(len(expected_oids), len(flattened_returned_pages))):
+      if expected_oids[i] != flattened_returned_pages[i]:
+        print(f'  Expected OID {expected_oids[i]} at position {i} but flattened_returned_pages[{i}] = {flattened_returned_pages[i]}')
+        q3_is_true = True
+    print(f'Q3 is {tf_to_yn(q3_is_true)} for {server_host} running version {server_version}')
+    print()
+    print('='*12, f'TEST END FOR {server_host}', '='*12)
+    print()
