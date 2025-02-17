@@ -334,7 +334,7 @@ if __name__ == '__main__':
     g = None
     while True:
       num_features = len(query_feature_page(server_url, g, resultOffset=0, resultRecordCount=500))
-      if num_features > 9 and num_features < 300:
+      if num_features > 9 and num_features < 90:
         break
       g = shapely.geometry.Polygon(gen_rand_points(3))
     print(f'Running test with random Geometry {g}')
