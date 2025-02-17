@@ -345,12 +345,20 @@ if __name__ == '__main__':
     expected_oids = query_feature_page(server_url, g, resultOffset=0, resultRecordCount=500)
     print(f'expected_oids({len(expected_oids)}) = {expected_oids}')
 
+    # Step 2.5: Detect if ANY of the offsets will return 0 features; if so log those as "sticky query indexes" which are likely to cause the below to hang/omit data
+    for i in range(0, len(expected_oids)):
+      page_with_one_item = query_feature_page(server_url, g, resultOffset=i, resultRecordCount=100)
+      if len(page_with_one_item) < 1:
+        print(f'Sticky Query Index at index {i} detected: Asked for resultOffset={i}, resultRecordCount=100 and recived {page_with_one_item}. We should have seen OID {expected_oids[i]}')
+
     # Step 3: Join pages together and do analysis on
     #   - do OIDS repeat?
     #   - Are OIDS omitted?
     if use_arcgis_pages:
+      print(f'Querying pages using query_feature_page_arcgis')
       offset_and_len, pages_of_oids = query_all_feature_pages(server_url, g, query_feature_page_fn=query_feature_page_arcgis)
     else:
+      print(f'Querying pages using query_feature_page')
       offset_and_len, pages_of_oids = query_all_feature_pages(server_url, g, query_feature_page_fn=query_feature_page)
 
     print(f'=== {len(pages_of_oids)} pages of oids returned ===')
