@@ -7,6 +7,7 @@
 # ]
 # ///
 
+
 import os
 import sys
 import urllib.request
@@ -20,6 +21,37 @@ import time
 
 import arcgis.gis
 import arcgis.geometry
+
+if len(os.environ.get('LOG_URLS_TO', '')) > 0:
+  import http
+  import http.client
+  log_urls_file = os.environ.get('LOG_URLS_TO', '')
+
+  def patch_send():
+      if os.path.exists(log_urls_file):
+        os.remove(log_urls_file)
+
+      old_send = http.client.HTTPConnection.send
+      def new_send(self, data):
+          with open(log_urls_file, 'a') as fd:
+            fd.write(f'{"-"*9} BEGIN REQUEST {"-"*9}')
+            fd.write('\n')
+            fd.write(data.decode('utf-8').strip())
+            fd.write('\n')
+            fd.write(f'{"-"*10} END REQUEST {"-"*10}')
+            fd.write('\n')
+          return old_send(self, data)
+      http.client.HTTPConnection.send = new_send
+
+      #old_getresponse = http.client.HTTPConnection.getresponse
+      #def new_getresponse(self):
+
+  patch_send()
+
+  print(f'LOG_URLS_TO is set, logging all requests to {log_urls_file}')
+else:
+  print(f'LOG_URLS_TO is unset, pass a file path to record all outgoing HTTP requests')
+
 
 server_urls = [ random.choice([
   # This one is an older server (10.91) which does not give stable paginated results
