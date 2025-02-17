@@ -346,10 +346,14 @@ if __name__ == '__main__':
     print(f'expected_oids({len(expected_oids)}) = {expected_oids}')
 
     # Step 2.5: Detect if ANY of the offsets will return 0 features; if so log those as "sticky query indexes" which are likely to cause the below to hang/omit data
+    num_sticky_indexes = 0
     for i in range(0, len(expected_oids)):
-      page_with_one_item = query_feature_page(server_url, g, resultOffset=i, resultRecordCount=100)
+      page_with_one_item = query_feature_page(server_url, g, resultOffset=i, resultRecordCount=10)
       if len(page_with_one_item) < 1:
-        print(f'Sticky Query Index at index {i} detected: Asked for resultOffset={i}, resultRecordCount=100 and recived {page_with_one_item}. We should have seen OID {expected_oids[i]}')
+        print(f'Sticky Query Index at index {i} detected: Asked for resultOffset={i}, resultRecordCount=10 and recived {page_with_one_item}. We should have seen OID {expected_oids[i]}')
+        num_sticky_indexes += 1
+    print(f'num_sticky_indexes = {num_sticky_indexes} (if this is ==0, this means we could successfully query every item one-at-a-time)')
+    print()
 
     # Step 3: Join pages together and do analysis on
     #   - do OIDS repeat?
