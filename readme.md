@@ -346,5 +346,67 @@ Q4 is No for gis.blm.gov running version 11.3 and USE_ARCGIS_PAGES = False
 ============ TEST END FOR gis.blm.gov ============
 ````
 
+```
+LOG_URLS_TO is unset, pass a file path to record all outgoing HTTP requests
+============ TEST BEGIN FOR sampleserver6.arcgisonline.com ============
+Server under test = https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/0/query
+Server version = 10.91
+min_x=-158.17646413699998 max_x=-68.78301209099993 min_y=19.702481852000062 max_y=64.84830189400003
+USE_ARCGIS_PAGES = False
+    (when True, arcgis.features.FeatureLayer::query is used download the data. When False, urllib.request.Request downloads the data.)
+USE_DOUBLE_QUERY = True
+    (when True, double_query_all_feature_pages combines the data. When False, query_all_feature_pages combines the data.)
+Running test with random Geometry POLYGON ((-113.19192287184511 29.328410171079476, -108.57467641302578 32.173487115552305, -96.46186864245628 49.66733753618811, -113.19192287184511 29.328410171079476))
+Test geometry is 318,584,520,215 km^2 in area
+
+expected_oids(26) = [2967, 2326, 2325, 2322, 2320, 2318, 2308, 2103, 648, 645, 644, 643, 642, 627, 626, 624, 617, 615, 613, 612, 608, 155, 150, 149, 138, 130]
+
+Querying pages using double_query_all_feature_pages + query_feature_page
+=== 26 pages of oids returned ===
+  Requested begin at offset 0 , return the next 1  items, recived 1 : [2967]
+  Requested begin at offset 1 , return the next 1  items, recived 1 : [2326]
+  Requested begin at offset 2 , return the next 1  items, recived 1 : [2325]
+  Requested begin at offset 3 , return the next 1  items, recived 1 : [2322]
+  Requested begin at offset 4 , return the next 1  items, recived 1 : [2320]
+  Requested begin at offset 5 , return the next 1  items, recived 1 : [2318]
+  Requested begin at offset 6 , return the next 1  items, recived 1 : [2308]
+  Requested begin at offset 7 , return the next 1  items, recived 1 : [2103]
+  Requested begin at offset 8 , return the next 1  items, recived 1 : [648]
+  Requested begin at offset 9 , return the next 1  items, recived 1 : [645]
+  Requested begin at offset 10, return the next 1  items, recived 1 : [644]
+  Requested begin at offset 11, return the next 1  items, recived 1 : [643]
+  Requested begin at offset 12, return the next 1  items, recived 1 : [642]
+  Requested begin at offset 13, return the next 1  items, recived 1 : [627]
+  Requested begin at offset 14, return the next 1  items, recived 1 : [626]
+  Requested begin at offset 15, return the next 1  items, recived 1 : [624]
+  Requested begin at offset 16, return the next 1  items, recived 1 : [617]
+  Requested begin at offset 17, return the next 1  items, recived 1 : [615]
+  Requested begin at offset 18, return the next 1  items, recived 1 : [613]
+  Requested begin at offset 19, return the next 1  items, recived 1 : [612]
+  Requested begin at offset 20, return the next 1  items, recived 1 : [608]
+  Requested begin at offset 21, return the next 1  items, recived 1 : [155]
+  Requested begin at offset 22, return the next 1  items, recived 1 : [150]
+  Requested begin at offset 23, return the next 1  items, recived 1 : [149]
+  Requested begin at offset 24, return the next 1  items, recived 1 : [138]
+  Requested begin at offset 25, return the next 1  items, recived 1 : [130]
+pages_of_oids_unique_oids(26) = {642, 643, 2308, 645, 644, 130, 648, 138, 2318, 2320, 2322, 2325, 2326, 2967, 150, 149, 155, 2103, 608, 612, 613, 615, 617, 624, 626, 627}
+flattened_deduped_returned_pages(26) = [2967, 2326, 2325, 2322, 2320, 2318, 2308, 2103, 648, 645, 644, 643, 642, 627, 626, 624, 617, 615, 613, 612, 608, 155, 150, 149, 138, 130]
+
+Test took 6.0 seconds (0.23 s/feature, 0.23 s/page of features)
+
+Q1: Are there duplicate OIDs?
+Q1 is No for sampleserver6.arcgisonline.com
+
+Q2: Are there expected OIDs which were NOT returnd by the paginated query?
+Q2 is No for sampleserver6.arcgisonline.com
+
+Q3: Are OIDs returned by the paginated query which were NOT expected OIDs?
+Q3 is No for sampleserver6.arcgisonline.com
+
+Q4: Is the ordering different from the one big query to the combination of smaller queries? (We use flattened_deduped_returned_pages instead of flattened_returned_pages to answer this question)
+Q4 is No for sampleserver6.arcgisonline.com
+
+============ TEST END FOR sampleserver6.arcgisonline.com ============
+```
 
 
